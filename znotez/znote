@@ -1,0 +1,9 @@
+uv run python test_workflow.py
+
+下一步修改：
+1. 能否合并配置 只让config 或者 env 生效？是否有必要？
+2. 布局修改：
+- 现在的LATEST DEVELOPMENTS之前的内容（也即是欢迎、摘要和要点部分）我希望要点部分（In today’s AI rundown:）有清晰的格式，如用圆点标识每一条要点
+- LATEST DEVELOPMENTS 和 QUICK HITS后面的部分 在原文格式其实都是两栏结构，我们能否看齐？现有的LATEST DEVELOPMENTS中的每个新闻的外侧黑框是有效的，给这两个板块也加上黑色框线这样更符合原文排版，如果能让这两个部分保持原来的两栏布局就更好了
+
+3.注意使用微信公众号支持的html表达（也就是现有的书写方式，有些html标签微信公众号不支持）

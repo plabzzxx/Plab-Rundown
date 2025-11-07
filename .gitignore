@@ -1,0 +1,95 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+.venv
+
+# uv
+.uv/
+uv.lock
+
+# 环境变量和凭证
+.env
+.env.local
+.env.*.local
+credentials/
+token.json
+token.pickle
+*.json
+!package.json
+!tsconfig.json
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+rundown.db
+
+# 日志
+logs/
+*.log
+log/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+coverage.xml
+*.cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Render
+.render/
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
