@@ -211,10 +211,6 @@ class LangChainTranslator:
                 else:
                     logger.error(f"翻译失败 (已重试 {max_retries} 次): {e}")
                     raise
-        
-        except Exception as e:
-            logger.error(f"翻译失败: {e}")
-            raise
     
     def _translate_long_text(self, text: str) -> str:
         """
