@@ -102,23 +102,12 @@ class LangChainTranslator:
             logger.info(f"使用 OpenAI: model={config.openai_model}")
             print(f"DEBUG: 正在使用的API Key为: '{config.openai_api_key}'")
 
-            # 如果使用 DeepSeek API,需要禁用代理(国内可直连)
-            http_client = None
-            if "deepseek.com" in config.openai_base_url:
-                logger.info("检测到 DeepSeek API,禁用代理以提高连接速度")
-                import httpx
-                http_client = httpx.Client(
-                    proxies=None,  # 禁用代理
-                    timeout=60.0
-                )
-
             return ChatOpenAI(
                 api_key=config.openai_api_key,
                 model=config.openai_model,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
-                base_url=config.openai_base_url,
-                http_client=http_client
+                base_url=config.openai_base_url
             )
 
         elif self.provider == "vertex_ai":
