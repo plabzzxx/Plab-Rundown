@@ -171,33 +171,46 @@ class LangChainTranslator:
         logger.info(f"文本较长 ({len(text)} 字符)，将分段翻译")
         return self._translate_long_text(text)
     
-    def _translate_chunk(self, text: str) -> str:
+    def _translate_chunk(self, text: str, max_retries: int = 3) -> str:
         """
-        翻译单个文本块
-        
+        翻译单个文本块(带重试机制)
+
         Args:
             text: 要翻译的文本
-        
+            max_retries: 最大重试次数
+
         Returns:
             翻译结果
         """
-        try:
-            # 构建提示词
-            prompt = self.translation_template.format(content=text)
-            
-            # 调用 LLM
-            messages = [
-                SystemMessage(content=self.system_prompt),
-                HumanMessage(content=prompt)
-            ]
-            
-            logger.info(f"开始翻译 ({len(text)} 字符)...")
-            response = self.llm.invoke(messages)
-            
-            translated = response.content.strip()
-            logger.info(f"翻译完成 ({len(translated)} 字符)")
-            
-            return translated
+        import time
+
+        for attempt in range(max_retries):
+            try:
+                # 构建提示词
+                prompt = self.translation_template.format(content=text)
+
+                # 调用 LLM
+                messages = [
+                    SystemMessage(content=self.system_prompt),
+                    HumanMessage(content=prompt)
+                ]
+
+                logger.info(f"开始翻译 ({len(text)} 字符)...")
+                response = self.llm.invoke(messages)
+
+                translated = response.content.strip()
+                logger.info(f"翻译完成 ({len(translated)} 字符)")
+
+                return translated
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 2  # 2秒, 4秒, 6秒
+                    logger.warning(f"翻译失败 (尝试 {attempt + 1}/{max_retries}): {e}, {wait_time}秒后重试...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"翻译失败 (已重试 {max_retries} 次): {e}")
+                    raise
         
         except Exception as e:
             logger.error(f"翻译失败: {e}")
