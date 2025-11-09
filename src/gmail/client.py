@@ -104,22 +104,36 @@ class GmailClient:
                 try:
                     creds.refresh(Request())
                     logger.info("令牌刷新成功")
+
+                    # 🔧 修复: 刷新成功后保存新的 token
+                    if not gmail_token_json:  # 只在本地环境保存文件
+                        os.makedirs(os.path.dirname(self.token_path), exist_ok=True)
+                        with open(self.token_path, 'wb') as token:
+                            pickle.dump(creds, token)
+                        logger.info(f"✅ 刷新后的令牌已保存: {self.token_path}")
+
                 except Exception as e:
                     logger.error(f"令牌刷新失败: {e}")
                     # 如果刷新失败且在服务器环境，抛出错误
-                    if gmail_token_json:
+                    if gmail_token_json or os.getenv('RENDER') or os.getenv('DOCKER_CONTAINER'):
                         raise RuntimeError(
-                            "Gmail token 刷新失败。请在本地重新授权并更新 GMAIL_TOKEN_JSON 环境变量"
+                            "Gmail token 刷新失败。请在本地重新授权:\n"
+                            "1. 在本地执行: uv run python -c \"from src.gmail.client import GmailClient; GmailClient()\"\n"
+                            "2. 完成浏览器授权\n"
+                            "3. 上传新的 credentials/token.pickle 到服务器"
                         )
                     creds = None
 
             # 如果还是没有有效凭证，执行 OAuth 流程（仅本地）
             if not creds:
                 # 检查是否在服务器环境（没有浏览器）
-                if gmail_token_json or os.getenv('RENDER'):
+                if gmail_token_json or os.getenv('RENDER') or os.getenv('DOCKER_CONTAINER'):
                     raise RuntimeError(
                         "在服务器环境中无法执行 OAuth 浏览器授权流程。\n"
-                        "请在本地完成授权后，将 token 信息设置到 GMAIL_TOKEN_JSON 环境变量"
+                        "请在本地完成授权:\n"
+                        "1. 在本地执行: uv run python -c \"from src.gmail.client import GmailClient; GmailClient()\"\n"
+                        "2. 完成浏览器授权\n"
+                        "3. 上传新的 credentials/token.pickle 到服务器"
                     )
 
                 logger.info("执行 OAuth 认证流程")
