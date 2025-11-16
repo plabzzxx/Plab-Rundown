@@ -23,7 +23,7 @@ load_dotenv(override=True)
 
 from src.scheduler.tasks import TaskScheduler
 from src.utils.logger import get_logger
-from src.gmail.client import GmailClient
+from src.email.factory import create_email_client
 from src.gmail.parser import EmailParser
 from src.translator.langchain_translator import LangChainTranslator
 from src.wechat.table_based_converter import TableBasedConverter
@@ -117,9 +117,8 @@ def run_daily_workflow():
         logger.info("\n📧 第一步: 获取最新邮件")
         logger.info("-" * 70)
 
-        # 初始化 Gmail 客户端（credentials_path 在 GitHub Actions 中不需要，会使用环境变量）
-        credentials_path = os.getenv('GMAIL_CREDENTIALS_PATH', 'credentials/credentials.json')
-        gmail_client = GmailClient(credentials_path=credentials_path)
+        # 初始化邮箱客户端（根据配置自动选择 Gmail API 或 IMAP）
+        email_client = create_email_client()
         parser = EmailParser()
         
         # 从配置读取发件人
@@ -136,8 +135,8 @@ def run_daily_workflow():
         # 策略选项：
         # - days_back=1: 获取最近1天内的最新邮件（更严格，确保是当天的）
         # - days_back=7: 获取最近7天内的最新邮件（更宽松，避免漏掉邮件）
-        # email_data = gmail_client.get_latest_email(sender=sender_email, days_back=1)  # 原策略：最近1天
-        email_data = gmail_client.get_latest_email(sender=sender_email, days_back=7)  # 当前策略：最近7天
+        # email_data = email_client.get_latest_email(sender=sender_email, days_back=1)  # 原策略：最近1天
+        email_data = email_client.get_latest_email(sender=sender_email, days_back=7)  # 当前策略：最近7天
 
         if not email_data:
             logger.warning("未找到邮件,跳过本次执行")
@@ -252,16 +251,26 @@ def run_daily_workflow():
         logger.info(f"标题: {title}")
         logger.info(f"摘要: {digest}")
         
-        # 提取第一张图片作为封面
+        # 提取第一条新闻的图片作为封面(跳过 banner 图)
         soup = BeautifulSoup(formatted_html, 'html.parser')
-        first_img = soup.find('img')
-        
+        all_imgs = soup.find_all('img')
+
+        # 跳过第一张图片(banner 图),使用第二张图片作为封面
         thumb_media_id = None
-        if first_img:
-            img_url = first_img.get('src', '')
+        cover_img = None
+
+        if len(all_imgs) >= 2:
+            # 使用第二张图片(第一条新闻的图片)
+            cover_img = all_imgs[1]
+        elif len(all_imgs) == 1:
+            # 如果只有一张图片,也使用它
+            cover_img = all_imgs[0]
+
+        if cover_img:
+            img_url = cover_img.get('src', '')
             if img_url and 'http' in img_url:
-                logger.info(f"找到封面图片: {img_url[:80]}...")
-                
+                logger.info(f"找到封面图片(第一条新闻): {img_url[:80]}...")
+
                 # 下载图片
                 temp_thumb_path = Path("data/assets/temp_thumb.jpg")
                 if download_image(img_url, temp_thumb_path):

@@ -157,10 +157,15 @@ class Config(BaseSettings):
     http_proxy: Optional[str] = Field(default=None, alias="HTTP_PROXY")
     https_proxy: Optional[str] = Field(default=None, alias="HTTPS_PROXY")
 
+    # IMAP 邮箱配置
+    email_username: Optional[str] = Field(default=None, alias="EMAIL_USERNAME")
+    email_password: Optional[str] = Field(default=None, alias="EMAIL_PASSWORD")
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"  # 忽略额外字段,避免验证错误
 
     def is_production(self) -> bool:
         """是否为生产环境"""

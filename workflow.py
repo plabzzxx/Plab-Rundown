@@ -21,7 +21,7 @@ sys.path.insert(0, str(project_root))
 # 加载环境变量
 load_dotenv()
 
-from src.gmail.client import GmailClient
+from src.email.factory import create_email_client
 from src.gmail.parser import EmailParser
 from src.translator.langchain_translator import LangChainTranslator
 from src.wechat.table_based_converter import TableBasedConverter
@@ -142,15 +142,12 @@ def main():
         print("开始时间:", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         print("-" * 70)
 
-        gmail_client = GmailClient(
-            credentials_path=config.gmail_credentials_path,
-            token_path=config.gmail_token_path
-        )
+        email_client = create_email_client()
         parser = EmailParser()
 
         # 获取最新邮件
         logger.info(f"正在获取来自 {config.sender_email} 的最新邮件...")
-        message = gmail_client.get_latest_email(
+        message = email_client.get_latest_email(
             sender=config.sender_email,
             days_back=7
         )
@@ -165,7 +162,7 @@ def main():
             return
 
         # 提取邮件数据
-        email_data = gmail_client.extract_email_data(message)
+        email_data = email_client.extract_email_data(message)
 
         logger.info("✅ 成功获取邮件")
         logger.info(f"📧 主题: {email_data['subject']}")
@@ -179,7 +176,7 @@ def main():
         print()
 
         # 获取HTML内容
-        html_content = gmail_client.get_email_html(email_data['id'])
+        html_content = email_client.get_email_html(email_data['id'])
 
         if not html_content:
             logger.error("❌ 无法解析邮件内容")
@@ -328,16 +325,26 @@ def main():
         print(f"📝 摘要: {digest}")
         print()
 
-        # 提取第一张图片作为封面
+        # 提取第一条新闻的图片作为封面(跳过 banner 图)
         soup = BeautifulSoup(formatted_html, 'html.parser')
-        first_img = soup.find('img')
+        all_imgs = soup.find_all('img')
 
+        # 跳过第一张图片(banner 图),使用第二张图片作为封面
         thumb_media_id = None
-        if first_img:
-            img_url = first_img.get('src', '')
+        cover_img = None
+
+        if len(all_imgs) >= 2:
+            # 使用第二张图片(第一条新闻的图片)
+            cover_img = all_imgs[1]
+        elif len(all_imgs) == 1:
+            # 如果只有一张图片,也使用它
+            cover_img = all_imgs[0]
+
+        if cover_img:
+            img_url = cover_img.get('src', '')
             if img_url and 'http' in img_url:
-                logger.info(f"找到封面图片: {img_url[:80]}...")
-                print(f"🖼️  找到封面图片")
+                logger.info(f"找到封面图片(第一条新闻): {img_url[:80]}...")
+                print(f"🖼️  找到封面图片(第一条新闻)")
 
                 # 下载图片
                 temp_thumb_path = Path("data/assets/temp_thumb.jpg")

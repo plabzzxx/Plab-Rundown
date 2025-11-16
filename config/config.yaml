@@ -3,7 +3,48 @@
 # ============================================
 
 # --------------------------------------------
-# Gmail 配置
+# 邮箱服务配置
+# --------------------------------------------
+email:
+  # 邮箱服务类型: gmail_api | imap
+  # - gmail_api: 使用 Gmail API (需要 OAuth 认证,需要代理)
+  # - imap: 使用 IMAP 协议 (支持 QQ/163/Gmail,不需要代理)
+  provider: "imap"
+
+  # 发件人邮箱地址
+  sender_email: "news@daily.therundown.ai"
+
+  # 最大获取邮件数
+  max_results: 5
+
+  # Gmail API 配置 (当 provider=gmail_api 时使用)
+  gmail_api:
+    credentials_path: "credentials/credentials.json"
+    token_path: "credentials/token.pickle"
+
+  # IMAP 配置 (当 provider=imap 时使用)
+  imap:
+    # IMAP 服务器地址
+    # QQ 邮箱: imap.qq.com
+    # 163 邮箱: imap.163.com
+    # Gmail: imap.gmail.com
+    server: "imap.qq.com"
+
+    # IMAP 端口 (通常是 993)
+    port: 993
+
+    # 是否使用 SSL
+    use_ssl: true
+
+    # 邮箱文件夹 (默认 INBOX)
+    folder: "INBOX"
+
+    # 注意: 邮箱账号和密码从环境变量读取
+    # EMAIL_USERNAME: 邮箱账号
+    # EMAIL_PASSWORD: 邮箱密码/授权码 (QQ邮箱需要使用授权码,不是QQ密码!)
+
+# --------------------------------------------
+# Gmail 配置 (已废弃,保留用于兼容)
 # --------------------------------------------
 gmail:
   sender_email: "news@daily.therundown.ai"
