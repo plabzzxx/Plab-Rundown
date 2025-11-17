@@ -139,11 +139,37 @@ class IMAPClient(EmailClient):
             
             # 限制返回数量,取最新的邮件
             email_ids = email_ids[-max_results:]
-            
+
             logger.info(f"找到 {len(email_ids)} 封邮件")
-            
-            # 返回邮件 ID 列表
-            return [{'id': email_id.decode()} for email_id in email_ids]
+
+            # 获取每封邮件的元数据
+            emails = []
+            for email_id in email_ids:
+                try:
+                    # 获取邮件头部信息
+                    status, msg_data = self.mail.fetch(email_id, '(BODY[HEADER.FIELDS (SUBJECT FROM DATE)])')
+                    if status == 'OK' and msg_data and msg_data[0]:
+                        msg = email.message_from_bytes(msg_data[0][1])
+
+                        # 提取元数据
+                        subject = self._decode_header(msg.get('Subject', ''))
+                        from_addr = self._decode_header(msg.get('From', ''))
+                        date_str = msg.get('Date', '')
+
+                        emails.append({
+                            'id': email_id.decode(),
+                            'subject': subject,
+                            'from': from_addr,
+                            'date': date_str
+                        })
+                    else:
+                        # 如果获取失败,至少返回 ID
+                        emails.append({'id': email_id.decode()})
+                except Exception as e:
+                    logger.warning(f"获取邮件 {email_id} 元数据失败: {e}")
+                    emails.append({'id': email_id.decode()})
+
+            return emails
         
         except Exception as e:
             logger.error(f"搜索邮件失败: {e}")
@@ -259,20 +285,44 @@ class IMAPClient(EmailClient):
     ) -> Optional[Dict[str, Any]]:
         """
         获取来自指定发件人的最新邮件
-        
+
         Args:
             sender: 发件人邮箱地址
             days_back: 搜索最近几天的邮件
-        
+
         Returns:
             最新邮件的完整内容,如果没有则返回 None
         """
-        messages = self.search_emails(sender, max_results=1, days_back=days_back)
-        
+        # 获取所有邮件
+        messages = self.search_emails(sender, max_results=50, days_back=days_back)
+
         if not messages:
             logger.warning(f"未找到来自 {sender} 的邮件")
             return None
-        
+
+        # 按日期排序,找到最新的
+        from email.utils import parsedate_to_datetime
+
+        latest_message = None
+        latest_date = None
+
+        for msg in messages:
+            date_str = msg.get('date')
+            if date_str:
+                try:
+                    msg_date = parsedate_to_datetime(date_str)
+                    if latest_date is None or msg_date > latest_date:
+                        latest_date = msg_date
+                        latest_message = msg
+                except Exception as e:
+                    logger.warning(f"解析日期失败: {date_str}, {e}")
+
+        if latest_message:
+            message_id = latest_message['id']
+            logger.info(f"找到最新邮件: {latest_message.get('subject')} ({latest_message.get('date')})")
+            return self.get_email_content(message_id)
+
+        # 如果没有日期信息,返回第一个
         message_id = messages[0]['id']
         return self.get_email_content(message_id)
 
