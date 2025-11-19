@@ -9,6 +9,7 @@ from email.header import decode_header
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 import re
+import base64
 
 from .base import EmailClient
 from ..utils.logger import get_logger
@@ -248,27 +249,32 @@ class IMAPClient(EmailClient):
                 }
             }
             
-            # 添加邮件正文部分
+            # 添加邮件正文部分 (编码为 base64,兼容 Gmail API 格式)
             if html_content:
+                # 将 HTML 内容编码为 base64 (兼容 Gmail API)
+                html_base64 = base64.urlsafe_b64encode(html_content.encode('utf-8')).decode('ascii')
                 result['payload']['parts'].append({
                     'mimeType': 'text/html',
                     'body': {
-                        'data': html_content
+                        'data': html_base64
                     }
                 })
-            
+
             if text_content:
+                # 将文本内容编码为 base64 (兼容 Gmail API)
+                text_base64 = base64.urlsafe_b64encode(text_content.encode('utf-8')).decode('ascii')
                 result['payload']['parts'].append({
                     'mimeType': 'text/plain',
                     'body': {
-                        'data': text_content
+                        'data': text_base64
                     }
                 })
-            
+
             # 如果没有 parts,直接放在 body 中
             if not result['payload']['parts'] and html_content:
+                html_base64 = base64.urlsafe_b64encode(html_content.encode('utf-8')).decode('ascii')
                 result['payload']['body'] = {
-                    'data': html_content
+                    'data': html_base64
                 }
                 result['payload']['mimeType'] = 'text/html'
             
@@ -376,22 +382,28 @@ class IMAPClient(EmailClient):
             message = self.get_email_content(message_id)
             payload = message.get('payload', {})
 
-            # IMAP 返回的内容已经是解码后的字符串,直接从 parts 中提取
+            # IMAP 返回的内容是 base64 编码的,需要解码 (兼容 Gmail API)
             parts = payload.get('parts', [])
 
             # 优先查找 text/html 部分
             for part in parts:
                 if part.get('mimeType') == 'text/html':
                     body = part.get('body', {})
-                    html_content = body.get('data', '')
-                    if html_content:
+                    html_base64 = body.get('data', '')
+                    if html_base64:
+                        # 解码 base64
+                        html_content = base64.urlsafe_b64decode(html_base64).decode('utf-8')
                         return html_content
 
             # 如果没有 parts,检查 body
             if not parts:
                 body = payload.get('body', {})
                 if payload.get('mimeType') == 'text/html':
-                    return body.get('data', '')
+                    html_base64 = body.get('data', '')
+                    if html_base64:
+                        # 解码 base64
+                        html_content = base64.urlsafe_b64decode(html_base64).decode('utf-8')
+                        return html_content
 
             logger.warning("未找到 HTML 内容")
             return None
